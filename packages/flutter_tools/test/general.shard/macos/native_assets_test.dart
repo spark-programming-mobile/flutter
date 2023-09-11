@@ -369,7 +369,6 @@ InstalledDir: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault
     ),
   }, () async {
     if (!const LocalPlatform().isMacOS) {
-      // TODO(dacoharkes): Implement other OSes. https://github.com/flutter/flutter/issues/129757
       return;
     }
 

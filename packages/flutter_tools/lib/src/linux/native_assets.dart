@@ -17,18 +17,19 @@ import '../native_assets.dart';
 ///
 /// This does not build native assets, it only simulates what the final paths
 /// of all assets will be so that this can be embedded in the kernel file.
-Future<Uri?> dryRunNativeAssetsLinux({
+Future<Uri?> dryRunNativeAssetsLinuxWindows({
   required NativeAssetsBuildRunner buildRunner,
   required Uri projectUri,
   bool flutterTester = false,
   required FileSystem fileSystem,
+  required OS os,
 }) async {
   if (await hasNoPackageConfig(buildRunner) || await isDisabledAndNoNativeAssets(buildRunner)) {
     return null;
   }
 
-  final Uri buildUri_ = nativeAssetsBuildUri(projectUri, OS.linux);
-  final Iterable<Asset> nativeAssetPaths = await dryRunNativeAssetsLinuxInternal(
+  final Uri buildUri_ = nativeAssetsBuildUri(projectUri, os);
+  final Iterable<Asset> nativeAssetPaths = await dryRunNativeAssetsLinuxWindowsInternal(
     fileSystem,
     projectUri,
     flutterTester,
@@ -42,7 +43,7 @@ Future<Uri?> dryRunNativeAssetsLinux({
   return nativeAssetsUri;
 }
 
-Future<Iterable<Asset>> dryRunNativeAssetsLinuxInternal(
+Future<Iterable<Asset>> dryRunNativeAssetsLinuxWindowsInternal(
   FileSystem fileSystem,
   Uri projectUri,
   bool flutterTester,
@@ -74,7 +75,7 @@ Future<Iterable<Asset>> dryRunNativeAssetsLinuxInternal(
 /// If [flutterTester] is true, absolute paths are emitted in the native
 /// assets mapping. This can be used for JIT mode without sandbox on the host.
 /// This is used in `flutter test` and `flutter run -d flutter-tester`.
-Future<(Uri? nativeAssetsYaml, List<Uri> dependencies)> buildNativeAssetsLinux({
+Future<(Uri? nativeAssetsYaml, List<Uri> dependencies)> buildNativeAssetsLinuxWindows({
   required NativeAssetsBuildRunner buildRunner,
   TargetPlatform? targetPlatform,
   required Uri projectUri,
@@ -83,7 +84,8 @@ Future<(Uri? nativeAssetsYaml, List<Uri> dependencies)> buildNativeAssetsLinux({
   Uri? yamlParentDirectory,
   required FileSystem fileSystem,
 }) async {
-  const OS targetOs = OS.linux;
+  final Target target = targetPlatform != null ? _getNativeTarget(targetPlatform) : Target.current;
+  final OS targetOs = target.os;
   final Uri buildUri_ = nativeAssetsBuildUri(projectUri, targetOs);
   final Directory buildDir = fileSystem.directory(buildUri_);
   if (!await buildDir.exists()) {
@@ -95,7 +97,7 @@ Future<(Uri? nativeAssetsYaml, List<Uri> dependencies)> buildNativeAssetsLinux({
     return (nativeAssetsYaml, <Uri>[]);
   }
 
-  final Target target = targetPlatform != null ? _getNativeTarget(targetPlatform) : Target.current;
+
   final native_assets_cli.BuildMode buildModeCli = nativeAssetsBuildMode(buildMode);
 
   globals.logger.printTrace('Building native assets for $target $buildModeCli.');
@@ -113,7 +115,7 @@ Future<(Uri? nativeAssetsYaml, List<Uri> dependencies)> buildNativeAssetsLinux({
   globals.logger.printTrace('Building native assets for $target done.');
   final Uri? absolutePath = flutterTester ? buildUri_ : null;
   final Map<Asset, Asset> assetTargetLocations = _assetTargetLocations(nativeAssets, absolutePath);
-  await _copyNativeAssetsLinux(
+  await _copyNativeAssetsLinuxWindows(
     buildUri_,
     assetTargetLocations,
     buildMode,
@@ -166,10 +168,11 @@ Target _getNativeTarget(TargetPlatform targetPlatform) {
       return Target.linuxX64;
     case TargetPlatform.linux_arm64:
       return Target.linuxArm64;
+    case TargetPlatform.windows_x64:
+      return Target.windowsX64;
     case TargetPlatform.android:
     case TargetPlatform.ios:
     case TargetPlatform.darwin:
-    case TargetPlatform.windows_x64:
     case TargetPlatform.fuchsia_arm64:
     case TargetPlatform.fuchsia_x64:
     case TargetPlatform.tester:
@@ -182,7 +185,7 @@ Target _getNativeTarget(TargetPlatform targetPlatform) {
   }
 }
 
-Future<void> _copyNativeAssetsLinux(
+Future<void> _copyNativeAssetsLinuxWindows(
   Uri buildUri,
   Map<Asset, Asset> assetTargetLocations,
   BuildMode buildMode,
@@ -235,4 +238,13 @@ Future<CCompilerConfig> cCompilerConfigLinux() async {
     cc: binaryPaths[kClangBinary],
     ld: binaryPaths[kLdBinary],
   );
+}
+
+Future<CCompilerConfig> cCompilerConfigWindows() async {
+  // Both package:native_toolchain_c and flutter_tools use vswhere so
+  // don't pass the information here. Passing the information
+  // would require copying the logic for finding cl.exe and
+  // vcvars to flutter_tools.
+  // TODO(dacoharkes): Can we share the logic between the two packages? https://github.com/flutter/flutter/issues/129757
+  return CCompilerConfig();
 }

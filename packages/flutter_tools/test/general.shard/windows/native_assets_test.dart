@@ -8,7 +8,6 @@ import 'package:file_testing/file_testing.dart';
 import 'package:flutter_tools/src/artifacts.dart';
 import 'package:flutter_tools/src/base/file_system.dart';
 import 'package:flutter_tools/src/base/logger.dart';
-import 'package:flutter_tools/src/base/platform.dart';
 import 'package:flutter_tools/src/build_info.dart';
 import 'package:flutter_tools/src/build_system/build_system.dart';
 import 'package:flutter_tools/src/features.dart';
@@ -54,7 +53,7 @@ void main() {
   }, () async {
     expect(
       await dryRunNativeAssetsLinuxWindows(
-        os: OS.linux,
+        os: OS.windows,
         projectUri: projectUri,
         fileSystem: fileSystem,
         buildRunner: FakeNativeAssetsBuildRunner(
@@ -93,8 +92,7 @@ void main() {
       projectUri: projectUri,
       fileSystem: fileSystem,
       targetPlatforms: <TargetPlatform>[
-        TargetPlatform.darwin,
-        TargetPlatform.ios,
+        TargetPlatform.windows_x64,
       ],
       buildRunner: FakeNativeAssetsBuildRunner(
         hasPackageConfigResult: false,
@@ -114,7 +112,7 @@ void main() {
     await packageConfig.create();
     expect(
       () => dryRunNativeAssetsLinuxWindows(
-        os: OS.linux,
+        os: OS.windows,
         projectUri: projectUri,
         fileSystem: fileSystem,
         buildRunner: FakeNativeAssetsBuildRunner(
@@ -138,7 +136,7 @@ void main() {
     await packageConfig.parent.create();
     await packageConfig.create();
     final Uri? nativeAssetsYaml = await dryRunNativeAssetsLinuxWindows(
-      os: OS.linux,
+      os: OS.windows,
       projectUri: projectUri,
       fileSystem: fileSystem,
       buildRunner: FakeNativeAssetsBuildRunner(
@@ -150,14 +148,8 @@ void main() {
             Asset(
               id: 'package:bar/bar.dart',
               linkMode: LinkMode.dynamic,
-              target: native_assets_cli.Target.linuxX64,
-              path: AssetAbsolutePath(Uri.file('libbar.so')),
-            ),
-            Asset(
-              id: 'package:bar/bar.dart',
-              linkMode: LinkMode.dynamic,
-              target: native_assets_cli.Target.linuxArm64,
-              path: AssetAbsolutePath(Uri.file('libbar.so')),
+              target: native_assets_cli.Target.windowsX64,
+              path: AssetAbsolutePath(Uri.file('bar.dll')),
             ),
           ],
         ),
@@ -165,7 +157,7 @@ void main() {
     );
     expect(
       nativeAssetsYaml,
-      projectUri.resolve('build/native_assets/linux/native_assets.yaml'),
+      projectUri.resolve('build/native_assets/windows/native_assets.yaml'),
     );
     expect(
       await fileSystem.file(nativeAssetsYaml).readAsString(),
@@ -205,7 +197,7 @@ void main() {
     await packageConfig.parent.create();
     await packageConfig.create();
     final (Uri? nativeAssetsYaml, _) = await buildNativeAssetsLinuxWindows(
-      targetPlatform: TargetPlatform.linux_x64,
+      targetPlatform: TargetPlatform.windows_x64,
       projectUri: projectUri,
       buildMode: BuildMode.debug,
       fileSystem: fileSystem,
@@ -217,7 +209,7 @@ void main() {
     );
     expect(
       nativeAssetsYaml,
-      projectUri.resolve('build/native_assets/linux/native_assets.yaml'),
+      projectUri.resolve('build/native_assets/windows/native_assets.yaml'),
     );
     expect(
       await fileSystem.file(nativeAssetsYaml).readAsString(),
@@ -227,7 +219,7 @@ void main() {
       environment.projectDir
           .childDirectory('build')
           .childDirectory('native_assets')
-          .childDirectory('linux'),
+          .childDirectory('windows'),
       exists,
     );
   });
@@ -241,14 +233,15 @@ void main() {
       FeatureFlags: () => TestFeatureFlags(isNativeAssetsEnabled: true),
       ProcessManager: () => FakeProcessManager.empty(),
     }, () async {
-      final File packageConfig = environment.projectDir.childDirectory('.dart_tool').childFile('package_config.json');
+      final File packageConfig =
+          environment.projectDir.childDirectory('.dart_tool').childFile('package_config.json');
       await packageConfig.parent.create();
       await packageConfig.create();
-      final File dylibAfterCompiling = fileSystem.file('libbar.so');
+      final File dylibAfterCompiling = fileSystem.file('bar.dll');
       // The mock doesn't create the file, so create it here.
       await dylibAfterCompiling.create();
       final (Uri? nativeAssetsYaml, _) = await buildNativeAssetsLinuxWindows(
-        targetPlatform: TargetPlatform.linux_x64,
+        targetPlatform: TargetPlatform.windows_x64,
         projectUri: projectUri,
         buildMode: BuildMode.debug,
         fileSystem: fileSystem,
@@ -262,7 +255,7 @@ void main() {
               Asset(
                 id: 'package:bar/bar.dart',
                 linkMode: LinkMode.dynamic,
-                target: native_assets_cli.Target.linuxX64,
+                target: native_assets_cli.Target.windowsX64,
                 path: AssetAbsolutePath(dylibAfterCompiling.uri),
               ),
             ],
@@ -271,7 +264,7 @@ void main() {
       );
       expect(
         nativeAssetsYaml,
-        projectUri.resolve('build/native_assets/linux/native_assets.yaml'),
+        projectUri.resolve('build/native_assets/windows/native_assets.yaml'),
       );
       expect(
         await fileSystem.file(nativeAssetsYaml).readAsString(),
@@ -279,10 +272,10 @@ void main() {
           'package:bar/bar.dart',
           if (flutterTester)
             // Tests run on host system, so the have the full path on the system.
-            '- ${projectUri.resolve('/build/native_assets/linux/libbar.so').toFilePath()}'
+            '- ${projectUri.resolve('/build/native_assets/windows/bar.dll').toFilePath()}'
           else
             // Apps are a bundle with the dylibs on their dlopen path.
-            '- libbar.so',
+            '- bar.dll',
         ]),
       );
     });
@@ -297,7 +290,7 @@ void main() {
     await packageConfig.create();
     expect(
       () => dryRunNativeAssetsLinuxWindows(
-        os: OS.linux,
+        os: OS.windows,
         projectUri: projectUri,
         fileSystem: fileSystem,
         buildRunner: FakeNativeAssetsBuildRunner(
@@ -309,14 +302,8 @@ void main() {
               Asset(
                 id: 'package:bar/bar.dart',
                 linkMode: LinkMode.static,
-                target: native_assets_cli.Target.macOSArm64,
-                path: AssetAbsolutePath(Uri.file('bar.a')),
-              ),
-              Asset(
-                id: 'package:bar/bar.dart',
-                linkMode: LinkMode.static,
-                target: native_assets_cli.Target.macOSX64,
-                path: AssetAbsolutePath(Uri.file('bar.a')),
+                target: native_assets_cli.Target.windowsX64,
+                path: AssetAbsolutePath(Uri.file(OS.windows.staticlibFileName('bar'))),
               ),
             ],
           ),
@@ -328,37 +315,5 @@ void main() {
             'For more info see https://github.com/dart-lang/sdk/issues/49418.',
       ),
     );
-  });
-
-  // This logic is mocked in the other tests to avoid having test order
-  // randomization causing issues with what processes are invoked.
-  // Exercise the parsing of the process output in this separate test.
-  testUsingContext('NativeAssetsBuildRunnerImpl.cCompilerConfig', overrides: <Type, Generator>{
-    FeatureFlags: () => TestFeatureFlags(isNativeAssetsEnabled: true),
-    ProcessManager: () => FakeProcessManager.list(
-          <FakeCommand>[
-            const FakeCommand(
-              command: <Pattern>['which', 'clang++'],
-              stdout: '''
-/some/path/to/clang++
-''', // Newline at the end of the string.
-            )
-          ],
-        ),
-    FileSystem: () => fileSystem,
-  }, () async {
-    if (!const LocalPlatform().isLinux) {
-      return;
-    }
-
-    await fileSystem.directory('/some/path/to/').create(recursive: true);
-    await fileSystem.file('/some/path/to/clang++').create();
-    await fileSystem.file('/some/path/to/clang').create();
-    await fileSystem.file('/some/path/to/llvm-ar').create();
-    await fileSystem.file('/some/path/to/ld.lld').create();
-
-    final NativeAssetsBuildRunner runner = NativeAssetsBuildRunnerImpl(projectUri, fileSystem, logger);
-    final CCompilerConfig result = await runner.cCompilerConfig;
-    expect(result.cc, Uri.file('/some/path/to/clang'));
   });
 }
