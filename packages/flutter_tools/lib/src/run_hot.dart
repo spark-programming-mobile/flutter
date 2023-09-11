@@ -5,7 +5,6 @@
 import 'dart:async';
 
 import 'package:meta/meta.dart';
-import 'package:native_assets_cli/native_assets_cli.dart';
 import 'package:package_config/package_config.dart';
 import 'package:pool/pool.dart';
 import 'package:vm_service/vm_service.dart' as vm_service;
