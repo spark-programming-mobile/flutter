@@ -4,7 +4,7 @@
 
 // This file is included from `<module>/.android/include_flutter.groovy`,
 // so it can be versioned with the Flutter SDK.
-
+println('start run module_plugin_loader.gradle')
 import groovy.json.JsonSlurper
 
 def moduleProjectRoot = project(':flutter').projectDir.parentFile.parentFile
