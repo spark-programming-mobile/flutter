@@ -384,7 +384,7 @@ class FlutterPlugin implements Plugin<Project> {
 
     /** Adds the plugin project dependency to the app project. */
     private void configurePluginProject(String pluginName, String _) {
-        Project pluginProject = project.rootProject.findProject(":$pluginName")
+        Project pluginProject = project.rootProject.findProject("${getPluginGroupName()}$pluginName")
         if (pluginProject == null) {
             project.logger.error("Plugin project :$pluginName not found. Please update settings.gradle.")
             return
@@ -478,7 +478,7 @@ class FlutterPlugin implements Plugin<Project> {
             int numProcessedPlugins = getPluginList().size()
 
             getPluginList().each { plugin ->
-                Project pluginProject = project.rootProject.findProject(plugin.key)
+                Project pluginProject = project.rootProject.findProject("${getPluginGroupName()}${plugin.key}")
                 pluginProject.afterEvaluate {
                     int pluginCompileSdkVersion = pluginProject.android.compileSdkVersion.substring(8) as int
                     maxPluginCompileSdkVersion = Math.max(pluginCompileSdkVersion, maxPluginCompileSdkVersion)
@@ -499,6 +499,13 @@ class FlutterPlugin implements Plugin<Project> {
         }
     }
 
+    private String getPluginGroupName(){
+        def groupName= project.providers.gradleProperty("flutterPluginGroupName").get()
+        if(!groupName.isEmpty()){
+            groupName = "$groupName:"
+        }
+        return groupName
+    }
     /**
      * Returns `true` if the given path contains an `android/build.gradle` file.
      */
