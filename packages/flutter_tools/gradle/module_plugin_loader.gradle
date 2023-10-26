@@ -31,7 +31,6 @@ if (pluginsFile.exists()) {
         def pluginDirectory = new File(androidPlugin.path, 'android')
         assert pluginDirectory.exists()
         def groupName= providers.gradleProperty("flutterPluginGroupName").get()
-        println("-------$groupName")
         if(!groupName.isEmpty()){
             groupName = ":$groupName"
         }
